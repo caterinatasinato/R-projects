@@ -21,14 +21,15 @@ This project analyzes the readiness of the Canadian population to resume daily a
 - **Notebooks**: R Markdown files for detailed analysis and findings.
 - **Reports**: Final report with visualizations and insights.
 
+## Key Findings
+
+- **Demographic Trends**: Older Canadians are more hesitant to return to social activities compared to younger age groups.
+- **Regional Differences**: People in more urbanized regions show higher levels of readiness to return to work and social gatherings.
+- **Comfort with Social Activities**: The majority of respondents felt comfortable returning to outdoor social activities but were more hesitant about attending large indoor events.
+
 ## How to Use
 
 1. Clone the repository: `git clone <repository-url>`
-2. Install necessary packages: `install.packages(c('tidyverse', 'ggplot2', 'dplyr'))`
-3. Run the R Markdown notebooks to perform the analysis.
-
-## Future Work
-
-- Longitudinal analysis to track changes in readiness over time.
-- Compare findings with other countries to identify global trends.
-
+2. Install the necessary R packages:
+   ```R
+   install.packages(
