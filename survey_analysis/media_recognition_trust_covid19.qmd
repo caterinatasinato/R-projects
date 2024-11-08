@@ -1,0 +1,355 @@
+---
+title: "Media Recognition and Trust Among Canadians: A Data-Driven Approach"
+author: "Caterina Tasinato"
+format: pdf
+---
+
+# DATA PROCESSING
+
+```{r message = FALSE, messages = FALSE, warning = FALSE}
+# Load 'tidyverse' library for data manipulation and visualization
+library(tidyverse)
+
+# Load 'showtext' library
+library(showtext)
+
+# Load 'patchwork' library
+library(patchwork)
+
+# Add Google font Montserrat
+font_add_google("montserrat")
+
+# Enable showtext to use the fonts
+showtext_auto()
+```
+
+```{r}
+# Import the dataset from the specified file path into a data frame 
+survey <- read.csv("~/Desktop/DOCUMENTS/ds_research_data.csv", header=TRUE)
+
+# View the data to verify the results 
+View(survey)
+```
+
+# FAMILIARITY
+
+```{r results = "hide", messages = FALSE, warning = FALSE}
+# Create a subset with the columns 'birthyear', 'Province', and 'news_canada_'
+familiarity <- survey %>%
+  select(birthyear, Province, starts_with("news_canada_")) %>%
+  rename(province = Province) %>%
+  mutate(province = recode(province, 
+                           "NovaScotia" = "Nova Scotia",
+                           "NewBrunswick" = "New Brunswick"))
+
+# Extract the names of the media from the first row
+media_names <- familiarity[1, -c(1, 2)] %>% # Exclude first 2 columns
+  unlist() %>% # Transform list in a vector
+  str_extract("(?<=-) .*") %>%  
+  str_trim()
+
+# Display the extracted media names
+print(media_names) # 27 media names + 'None' column 
+
+# Remove the first 2 rows from the original data 
+familiarity <- familiarity[-c(1, 2), ]
+
+# Remove the last column "None" 
+familiarity <- familiarity[, -ncol(familiarity)]
+
+# Ensure that the number of columns matches the number of media names
+names(familiarity)[-(1:2)] <- media_names
+
+# Pivot and transform the data
+familiarity_news <- familiarity %>%
+  pivot_longer(
+    cols = -(birthyear:province),  
+    names_to = "media_name",
+    values_to = "familiarity"
+  ) %>%
+  mutate(
+    familiarity = str_trim(familiarity),  
+    familiarity = case_when(
+      familiarity %in% media_names ~ "Yes",  # If response is the media 
+      familiarity == "0" ~ "No",             # If response is 0 
+      familiarity == "" ~ "Not presented",   # If response is empty
+      familiarity == "-99" ~ "Missing"       # If response is -99
+    )) 
+  
+# View the final result
+View(familiarity_news) # Now the format is correct
+```
+
+Examining the data, each participant had to indicate whether they were familiar with **4 national media sources**, which were randomly presented from Block 1 of the questionnaire (except for participants from Ontario, who were always presented with the *Toronto Star,* meaning that they could select up to 5 media sources from Block 1). Additionally, participants were shown **2 international media sources** (US or UK-based), randomly presented from Block 2. Finally, depending on their province of residence, participants were asked to rate their familiarity with **regional newspapers**. For instance, the *Vancouver Sun* and *The Province* were only shown to participants residing in British Columbia, *The Daily Gleaner* only to those in New Brunswick, etc.
+
+If my understanding of the experimental design is correct, to avoid bias and ensure a more accurate and representative analysis of media brands in Canada, I would focus only on national and international media sources. Since not all participants were asked about the same regional newspapers (due to their province-specific nature), including them in the overall analysis might lead to inaccurate conclusions about media familiarity across Canada. In this sense, by concentrating only on national and international media, I believe the analysis is based on a set of media sources that all participants had an equal opportunity to be exposed to (albeit randomly). This approach, in my view, provides a more fair and balanced perspective on media recognition across the country. Of course, I could also provide a separate ranking of regional newspapers; however, in this case, the familiarity with those media would only be relevant to residents in specific provinces and may also depend by the number of participants residing in the provinces which, in the current case, is also not balanced.
+
+```{r}
+# Define the media of interest (national and international)
+national_media_brands <- c("CTV News", 
+                           "The CBC", 
+                           "The Hill Times", 
+                           "MacLeans", 
+                           "Toronto Star", 
+                           "The Canadian Public Affairs Channel",
+                           "The Globe and Mail", 
+                           "The National Post")
+
+international_media_brands <- c("CNN", 
+                                "Fox News", 
+                                "The New York Times", 
+                                "The Guardian", 
+                                "The Economist", 
+                                "The Wall Street Journal",
+                                "The Huffington Post")
+```
+
+```{r}
+# Define a function to calculate proportions of familiarity
+analyze_familiarity <- function(data, media_brands) {
+  data %>%
+    filter(media_name %in% media_brands) %>%
+    filter(familiarity %in% c("Yes", "No")) %>%
+    group_by(media_name, familiarity) %>%
+    summarise(count = n(), .groups = 'drop') %>%
+    group_by(media_name) %>%
+    mutate(total = sum(count),
+           percentage = round((count / total) * 100, 2)) %>%
+    arrange(media_name, desc(percentage))
+}
+
+# Apply function to 2 groups of media brands 
+familiarity_national <- analyze_familiarity(familiarity_news, national_media_brands)
+familiarity_international <- analyze_familiarity(familiarity_news, international_media_brands)
+
+# View the results 
+View(familiarity_national)
+View(familiarity_international)
+```
+
+```{r}
+familiarity_national$media_name <- factor(familiarity_national$media_name,
+                                       levels = c("The Hill Times",
+                                                  "The Canadian Public Affairs Channel",
+                                                  "MacLeans", 
+                                                  "The National Post", 
+                                                  "Toronto Star", 
+                                                  "The Globe and Mail", 
+                                                  "The CBC",
+                                                  "CTV News"
+                                                  ))
+
+familiarity_international$media_name <-factor(familiarity_international$media_name,
+                                       levels = c("The Economist",
+                                                  "The Guardian",
+                                                  "The Wall Street Journal",
+                                                  "The Huffington Post", 
+                                                  "The New York Times", 
+                                                  "Fox News",
+                                                  "CNN"
+                                                  ))
+```
+
+```{r message = FALSE, messages = FALSE, warning = FALSE}
+#| fig.width= 12, fig.height=8, fig.dpi=300
+# Define a function to create familiarity plots for media data
+create_familiarity_plot <- function(data, title) {
+  ggplot(data, aes(media_name, percentage, fill = familiarity)) + 
+    # Set up the plot 
+    geom_bar(stat = "identity", position = "fill", 
+             color = "black", size = 0.2, width = 0.8) + 
+    # Add percentage labels inside the bars
+    geom_text(aes(label = paste0(round(percentage), "%")), 
+              position = position_fill(vjust = 0.5),
+              size = 4.5, color = "black", family = "montserrat") +
+    # Set plot title and remove axis and legend labels
+    labs(title = title, x = NULL, y = NULL, fill = NULL) + 
+    # Remove y-axis labels and ticks
+    scale_y_continuous(labels = NULL, breaks = NULL) + 
+    # Set custom colors for fill
+    scale_fill_manual(values = c("Yes" = "#45b39d", "No" = "#f1948a"), 
+                      breaks = c("Yes", "No")) + 
+    # Use a minimal theme for the plot and flip coordinates to make the bars horizontal
+    theme_minimal() + 
+    coord_flip() + 
+    # Customize various theme elements
+    theme(text = element_text(family = "montserrat"),
+          axis.text.y = element_text(size = 14, color = "#27272e"),
+          axis.text.x = element_text(size = 14, color = "#27272e"),
+          plot.title = element_text(size = 16, color = "black", face = "bold"),
+          plot.margin = margin(10, 10, 10, 10),  
+          legend.position = "bottom",  
+          legend.title = element_text(size = 14, color = "#27272e"), 
+          legend.text = element_text(size = 14, color = "#27272e"))
+}
+
+# Create plots for different media groups using the defined function
+plot1 <- create_familiarity_plot(familiarity_national, "National Media") 
+plot2 <- create_familiarity_plot(familiarity_international, "International Media") 
+
+# Combined plots
+familiarity_plots <- (plot1 / plot2) + 
+plot_layout(guides = "collect", widths = unit(c(1, 1, 1), "null"))+
+  plot_annotation(
+    title = "Which media brands do Canadians recognize most?",
+    theme = theme(plot.title = element_text(size = 18, colour = "black", 
+                                            face = "bold", hjust = 0), 
+                  plot.margin = margin(10, 10, 10, 10)
+    )
+  ) & theme(legend.position = "bottom")
+
+# Visualize plots
+print(familiarity_plots)
+```
+
+The bar charts show the rate of familiarity with national and international media brands in Canada. Here are my comments:
+
+**National Media**: *CTV News* and *The CBC* stand out as the most familiar national media brands, each with an 84% familiarity rate among participants. This high level of recognition suggests that these media have a broad reach in Canada. *The Globe and Mail* also has a strong recognition rate at 70%, indicating it is a well-known source among Canadians, though slightly less so than *CTV News* and *The CBC*. On the other hand, brands like *The National Post* (61%), *Toronto Star* (61%), and *MacLeans* (48%) show moderate recognition, suggesting they are known but may not be the primary news sources of information in Canada. Meanwhile, *The Canadian Public Affairs Channel* (13% familiar) and *The Hill Times* (4% familiar) are the least recognized national media brands. This low recognition could indicate these outlets have less general exposure.
+
+**International Media**: *CNN* is the most recognized international media brand, with 74% of respondents familiar with it, suggesting that it has a significant presence in Canada. *Fox News* (64%) and *The New York Times* (61%) also show considerable recognition, indicating that these international media brands are familiar to a substantial portion of the Canadian audience. In contrast, *The Economist* (33%) and *The Guardian* (35%) have lower familiarity. In my view, the difference in the rate of familiarity between U.S. and U.K. media might be due to the geographical proximity of Canada to the U.S.
+
+# TRUST
+
+```{r results = "hide", messages = FALSE, warning = FALSE}
+# # Create a subset with the columns 'birthyear', 'Province', and 'news_trust'
+trust <- survey %>%
+  select(birthyear, Province, starts_with("news_trust_")) %>%
+  rename(province = Province) %>%
+  mutate(province = recode(province, 
+                           "NovaScotia" = "Nova Scotia",
+                           "NewBrunswick" = "New Brunswick"))
+
+# Extract the names of the media from the first row
+media_names <- trust[1, -c(1, 2)] %>%  
+  unlist() %>%
+  str_extract("(?<=-) .*") %>%  
+  str_trim()
+
+# Display the extracted media names
+print(media_names)
+
+# Remove the first 2 rows from the original data 
+trust <- trust[-c(1, 2), ]  
+
+# Remove the last column "None" because it is not useful
+trust <- trust[, -ncol(trust)]
+
+# Ensure that the number of columns matches the number of media names
+names(trust)[-(1:2)] <- media_names
+
+# Pivot 'trust' columns to long format and clean the data
+trust_news <- trust %>%
+  pivot_longer(
+    cols = -(birthyear:province),  
+    names_to = "media_name",
+    values_to = "trust"
+  ) %>%
+  mutate(
+    trust = str_trim(trust),  
+    trust = case_when(
+      trust == "Yes" ~ "Yes",              # If response is "Yes"
+      trust == "No" ~ "No",                # If response is "No"
+      trust == "Not sure" ~ "Not sure",    # If response is "Not sure"
+      trust == "" ~ "Not presented",       # If response is empty
+      TRUE ~ "Unknown"                     # Other cases, if any exist
+    )
+  )
+
+# View the final result
+View(trust_news)
+```
+
+```{r}
+# Define a function to calculate proportions of trust
+analyze_trust <- function(data, media_brands) {
+  data %>%
+    filter(media_name %in% media_brands) %>%
+    filter(trust%in% c("Yes", "No", "Not sure")) %>%
+    group_by(media_name, trust) %>%
+    summarise(count = n(), .groups = 'drop') %>%
+    group_by(media_name) %>%
+    mutate(total = sum(count),
+           percentage = round((count / total) * 100, 2)) %>%
+    arrange(media_name, desc(percentage))
+}
+
+# Apply function to media brands 
+trust_national <- analyze_trust(trust_news, national_media_brands)
+trust_international <- analyze_trust(trust_news, international_media_brands)
+
+# View the results
+View(trust_national)
+View(trust_international)
+```
+
+```{r}
+trust_national$media_name <- factor(trust_national$media_name,
+                                    levels = c("The Hill Times",
+                                               "Toronto Star", 
+                                               "The National Post",  
+                                               "The Canadian Public Affairs Channel",
+                                               "The Globe and Mail",
+                                               "MacLeans",
+                                               "The CBC",
+                                               "CTV News"))
+
+trust_international$media_name <-factor(trust_international$media_name,
+                                       levels = c("Fox News",
+                                                  "The Huffington Post", 
+                                                  "The Wall Street Journal",
+                                                  "CNN",
+                                                  "The New York Times", 
+                                                  "The Guardian",
+                                                  "The Economist"))
+```
+
+```{r message = FALSE, messages = FALSE, warning = FALSE}
+#| fig.width= 12, fig.height=8, fig.dpi=300
+# Define the function to create trust plots
+create_trust_plot <- function(data, title) {
+  ggplot(data, aes(media_name, percentage, fill = trust)) +
+    geom_bar(stat = "identity", position = "fill", 
+             color = "black", size = 0.2, width = 0.8) +
+    geom_text(aes(label = paste0(round(percentage), "%")), 
+              position = position_fill(vjust = 0.5), 
+              size = 4.5, color = "black", family = "montserrat") +
+    labs(title = title, x = NULL, y = NULL, fill = NULL) +
+    scale_y_continuous(labels = NULL, breaks = NULL) +
+    scale_fill_manual(values = c("Yes" = "#5499c7", "No" = "#cb4d73", "Not sure" = "#d5dbdb"),
+                      breaks = c("Yes", "Not sure", "No")) +
+    theme_minimal() + 
+    coord_flip() + 
+    theme(text = element_text(family = "montserrat"),
+          axis.text.y = element_text(size = 14, color = "#27272e"),
+          axis.text.x = element_text(size = 14, color = "#27272e"),
+          plot.title = element_text(size = 16, color = "black", face = "bold"),
+          plot.margin = margin(10, 10, 10, 10),  
+          legend.position = "bottom",  
+          legend.title = element_text(size = 14, color = "#27272e"), 
+          legend.text = element_text(size = 14, color = "#27272e"))
+}
+
+# Create the plots for different media groups
+plot3 <- create_trust_plot(trust_national, "National Media")
+plot4 <- create_trust_plot(trust_international, "International Media")
+
+# Combine plots 
+trust_plots <- (plot3 / plot4) +
+  plot_layout(guides = "collect", widths = unit(c(1, 1, 1), "null")) +  # 
+  plot_annotation(
+    title = "Which media brands do Canadians trust?",
+    theme = theme(plot.title = element_text(size = 18, colour = "black", face = "bold", hjust = 0),
+                  plot.margin = margin(10, 10, 10, 10))  
+  ) & theme(legend.position = "bottom")
+
+# Visualize plot
+print(trust_plots)
+```
+
+The bar charts show the rate of trust with national and international media brands in Canada. Here are my comments:
+
+**National Media:** *CTV News* shows the highest level of trust among national media brands, with 71% of respondents indicating they trust this source. This suggests that *CTV News* is seen as a reliable source of information by the majority of Canadians. *The CBC* also enjoys a high level of trust, with 60% of respondents indicating trust, which mirrors its strong presence. *MacLeans* (60% trust) and t*he Globe and Mail* (59% trust) have also relatively high trust levels, indicating they are viewed positively by a substantial portion of the Canadian public. *The National Post* and *Toronto Star* show in turn moderate trust levels at 53% and 52%, respectively. This suggests that while these brands are trusted, they may not be as strongly trusted. On the other hand, *The Canadian Public Affairs Channel* (56% trust) and *The Hill Times* (47% trust) show lower levels of trust.
+
+**International Media**: among international media brands, trust levels are more consistent, with less variation than what we can see in national media. *The New York Times*, *The Guardian*, and *The Economist* each show moderate trust levels around 52-53%. These brands are perceived as quite trustworthy in Canada. *The Wall Street Journal* and *CNN* also have moderate trust levels, at 46% and 47%, respectively. While not leading in trust, they are still regarded as reliable by nearly half of the respondents. On the other hand, *Fox News* stands out with the lowest trust level (23%) and the highest distrust level (51%) among the international brands. *CNN* also shows a mixed trust profile, with a substantial portion of respondents indicating distrust (27%).
+
+In summarize, while familiarity and trustworthiness sometimes go hand-in-hand for national media brands in Canada, the situation is different for international media. Canadians tend to have less trust in international media brands, even if those brands are well-known in the country. Overall, this result indicates that high familiarity with a media brand does not necessarily translate to high trust, especially when it comes to international sources. For example, *CNN* is familiar to 74% of Canadians, but only 47% trust it, with a significant 27% expressing distrust. Similarly, while *Fox News* is familiar to 64% of Canadians, it has a very low trust level at 23% and a high distrust level at 51%. On the other hand, national media brands like *CTV News* and *The CBC* enjoy both high familiarity (84%) and high trust (71% and 60%, respectively), showing a closer alignment between being well-known and being trusted. Further analysis could explore potential correlations between political affiliation, age groups, and the trust Canadians place in media, offering a deeper understanding of these trust dynamics.
