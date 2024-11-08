@@ -27,9 +27,3 @@ This project analyzes the readiness of the Canadian population to resume daily a
 - **Regional Differences**: People in more urbanized regions show higher levels of readiness to return to work and social gatherings.
 - **Comfort with Social Activities**: The majority of respondents felt comfortable returning to outdoor social activities but were more hesitant about attending large indoor events.
 
-## How to Use
-
-1. Clone the repository: `git clone <repository-url>`
-2. Install the necessary R packages:
-   ```R
-   install.packages(
