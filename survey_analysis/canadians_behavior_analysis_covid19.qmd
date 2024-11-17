@@ -41,8 +41,6 @@ View(survey)
 glimpse(survey) # 1588 rows, 129 columns
 ```
 
-# DEMOGRAPHICS
-
 ```{r results = "hide"}
 # Count missing values for 'gender' and 'province'from the source data
 missing_gender <- survey %>% 
@@ -169,12 +167,6 @@ ggplot(demographics, aes(province, count, fill = gender)) +
     legend.text = element_text(size = 14, color = "#27272e")
     )
 ```
-
-The bar chart displays the proportions of male and female Canadians participating in the survey divided by their province of residence. The graph shows that, in most provinces, the distribution of male and female participants closely mirrors the overall sample distribution (54% female, 46% male). However, New Brunswick and Newfoundland deviate from this pattern: in New Brunswick, 61% of participants are female and 39% are male; in Newfoundland, 64% are male and 36% are female. In my view, these differences likely result from unbalanced sample sizes rather than reflecting an inherent gender imbalance in these provinces. Therefore, to correct these differences, I would simply suggest administering the survey to additional male participants in New Brunswick, and additional female participants in Newfoundland in order to balance the gender distribution.
-
-The bar chart does not include participants who selected "Other" or "I prefer not to say" for the gender question. However, as only 5 participants fell into these categories, I would have also decided to filter the data to include only male and female participants and provide a clearer representation of the gender distribution among Canadians. Moreover, I noticed that participants from Yukon, Nunavut, and the Northwest Territories have been grouped under 'Territories' and combined with those from British Columbia.
-
-# WHENREADY
 
 ```{r}
 # Transform data for the analysis by creating a subset
@@ -359,24 +351,6 @@ ggplot(whenready_general, aes(behavior, count, fill = response)) +
   guides(fill = guide_legend(nrow = 2))
 ```
 
-The bar chart illustrates the rate of the readiness of Canadians to resume 10 different behaviors after the COVID-19 pandemic, categorized into six different levels: 'Already doing it', 'In 1-3 months', 'In 3-6 months', 'In 6+ months', 'After vaccine or virus gone', and 'No foreseeable time'.
-
-The bar chart reveals a clear distinction between the behaviors Canadians are more ready to resume and those they are hesitant about.
-
--   A significant majority of Canadians are ready to **resume in-person shopping** (66% already doing it), **return to their workplaces** (55% already doing it), and **eat at restaurants** (40% already doing it).
-
--   For **public transport**, 29% are already using it, while a combined 28% are planning to resume within the next 6 months.
-
--   **Going to bars or clubs** shows more hesitancy, with only 10% already doing it, and 38% indicating they would only do so in the next 6 months or after the virus is gone, while 20% cannot image the time they will be able to do it again.
-
--   **Public events** like festivals and concerts have similar patterns, with only 5% already doing, a combined 31% planning within 3-6 months, but 43% waiting until safer times, and 21% not expecting to attend in the foreseeable future.
-
--   **Domestic flights** for business or leisure also reflect high caution. Only 7% are currently taking **domestic business flights**, and 5% for **domestic leisure flights**. A substantial 40% and 43% respectively prefer waiting until a vaccine or the virus is gone, and around 25% to 29% are unsure about when they will travail again by plane.
-
--   **International flights f**or business or leisure display a similar pattern. Only 4% are currently undertaking **international business flights**, and only 3% for **international leisure flights**. Again, 44% and 47% respectively prefer to wait until the pandemic is over, and 29% feel there's no foreseeable time they'll resume this behavior.
-
-In summary, these insights reflect a cautious approach among Canadians regarding behaviors that involve larger gatherings or travel, compared to more every day-life activities.
-
 ```{r}
 # Transform and prepare data for a more specific analysis
 whenready_specific <- whenready %>%
@@ -497,23 +471,3 @@ ggplot(whenready_specific, aes(behavior, count, fill = response)) +
   # Use facet_wrap to create separate panels for each age_group
   facet_wrap(~ age_group, ncol = 2, scales = "free_x")
 ```
-
-The bar chart illustrates the readiness of Canadians to resume 10 different behaviors post-COVID-19 divided across four age groups: 18-34 years, 35-49 years, 50-64 years, and 65+ years. Here are resumed some key points.
-
--   **In-Person Shopping**: Readiness is consistently high across all age groups, with 64% to 67% already comfortable returning to in-person shopping. This suggests that shopping is overall viewed as a relatively safe activity.
-
--   **Return to Workplace**: Middle-aged adults (50-64 years) show the highest readiness to return to the workplace, with 62% already doing so or planning to do so soon. Other age groups show slightly more caution, with readiness ranging from 51% to 54%. This may reflect the potential for remote work among younger adults or health concerns among older ones.
-
--   **Eat at Restaurants**: Both younger and middle-aged adults (18-64 years) rated to be ready to eat at restaurants, with 41% to 43% already doing so. In contrast, 36% of adults aged 65+ rated to be ready to resume this activity.
-
--   **Public Transport**: Public transport usage is more common among younger age groups, with about 33% of 18-34 year-old, 31% of 34-49 year-old and 31% of 49-64 year-old using it. However, this drops to 21% for those aged 65+, indicating concerns over virus exposure in these settings.
-
--   **Go to Bars or Clubs**: Younger adults (18-34 years) show the highest inclination, with 13% already going to bars or clubs and a combined 24% planning to do so in the next 3-6 months. In contrast, the other age groups are more cautious about resuming this activity.
-
--   **Public Events**: There is a common caution towards attending public events, such as concerts or festivals, across all age groups, reflecting shared concerns over large and outdoor gatherings. However, younger adults (18-34 years) and middle-aged adults (35-49 years) have a combined proportion of "After vaccine or virus gone" and "No foreseeable time" at 56% and 59%, respectively. This is lower compared to the older groups (50-64 years and 65+ years), which have higher combined proportions of 66% and 69%. This may indicate that younger and middle-aged adults are slightly more optimistic about resuming this activity compared to older adults.
-
--   **Domestic Travel**: A cautious approach towards domestic travel is evident across all age groups. However, younger adults (18-34 years) and middle-aged adults (35-49 years) show a combined proportion of "After vaccine or virus gone" and "No foreseeable time" at 54% and 62%, respectively. In contrast, older groups (50-64 years and 65+ years) exhibit higher combined proportions of 69% and 73%, respectively. This indicates that younger and middle-aged adults are again more optimistic about resuming domestic travel sooner, whereas older adults are more hesitant.
-
--   **International Travel**: There is significant caution towards resuming international travel across all age groups. Younger adults (18-34 years) and middle-aged adults (35-49 years) have a combined proportion of "After vaccine or virus gone" and "No foreseeable time" at 62% and 72%, respectively. In contrast, older adults (50-64 years and 65+ years) show even higher combined proportions of 77% and 80%, respectively. These numbers indicate that while there is a general hesitation towards international travel, younger and middle-aged adults are somewhat more willing to consider it sooner compared to older adults, who prefer to wait until conditions are much safer.
-
-In summary, while all age groups of Canadians are gradually moving towards resuming normal activities, younger and middle-aged adults generally feel slightly more ready to engage in activities involving social interaction, travel, and public spaces. In contrast, older adults tend to be more cautious, preferring to prioritize health and safety.
